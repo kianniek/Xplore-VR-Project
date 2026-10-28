@@ -1,0 +1,59 @@
+#pragma kernel RaiseVertices
+//#pragma constant UNITY_MATRIX_MVP "_UnityMatrixMVP"
+
+RWStructuredBuffer<float3> vertices;
+StructuredBuffer<float3> originalVertices;
+
+float raiseAmount;
+float3 reverencePosition;
+
+// Declare UNITY_MATRIX_MVP manually
+float4x4 UNITY_MATRIX_MVP;
+
+// Custom length function for 3D vectors
+float length(float3 v, float3 w)
+{
+    float a = v.x - w.x;
+
+    float c = v.z - w.z;
+    
+    return sqrt(pow(a, 2) + pow(c, 2));
+}
+
+[numthreads(64, 1, 1)]
+void RaiseVertices(uint3 id : SV_DispatchThreadID)
+{
+    float3 v = vertices[id.x];
+
+    if (originalVertices[id.x].y <= 0)
+    {
+        vertices[id.x] = v;
+        return;
+    }
+
+    
+    // Get original position
+    v = originalVertices[id.x];
+    float4 vertexPosition = float4(v, 1.0f);
+    float4 worldPosition = mul(UNITY_MATRIX_MVP, vertexPosition);
+    float distance = length(reverencePosition, worldPosition.xyz);
+    float fadeDistance = 50.0f;
+    
+    if (distance < fadeDistance) // Check distance and return immediately if less than 5
+    {
+        vertices[id.x] = originalVertices[id.x];
+        return;
+    }
+    
+    float max_height = 0.0;
+    float height = originalVertices[id.x].y;
+    if (height > max_height)
+    {
+        max_height = height;
+    }
+    float height_factor = 1.0 + v.y / max_height;
+    float raise_amount = (raiseAmount / fadeDistance) * height_factor * (distance - fadeDistance) / fadeDistance;
+    v.y *= 1 + raise_amount;
+
+    vertices[id.x] = v;
+}

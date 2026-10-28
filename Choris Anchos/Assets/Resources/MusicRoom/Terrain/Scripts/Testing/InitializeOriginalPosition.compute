@@ -1,0 +1,10 @@
+#pragma kernel InitializeOriginalPosition
+
+
+RWStructuredBuffer<float3> vertices;
+
+[numthreads(64, 1, 1)]
+void InitializeOriginalPosition(uint3 id : SV_DispatchThreadID) {
+    float3 v = vertices[id.x];
+    vertices[id.x] = v;
+}
